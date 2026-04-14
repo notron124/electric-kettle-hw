@@ -1,24 +1,58 @@
 #include "kettlecontrollerimpl.h"
+#include <QtLogging>
 
 void KettleControllerImpl::controllerProcess()
 {
-    /*
-     * TODO
-     * Писать код следует в рамках данного класса наследника.
-     * Вы можете определять любые члены данного класса (внутренние классы, перечислители, поля, методы, всё что угодно).
-     * Данный метод вызывается раз в 20 мсек (исходя из частоты сети в 50 Гц) по времени чайника (время симуляции).
-     * Время симуляции значительно ускорено, потому полагаться на системные часы нельзя.
-     * Отклонения от частоты питающей сети можно не учитывать.
-     * Но возможны любые отклонения от работы датчиков.
-     * Для опроса состояния вам доступны публичные методы базового класса.
-     * Кроме этих методов больше ничего не доступно.
-     * Получение доступа к другим методам является нарушением условий задания. (но предложения мы рассмотрим)
-     * Использовать константы, функции и прочее из других источников из данной программы нельзя. Они вам не нужны.
-     */
+    switch (kettleMode) {
+    case KM_IDLE:
+        if (isConditionsSafe()) {
+            kettleMode = KM_HEATING;
+            heaterOn();
 
-    // Данный код написан для примера. Он не является правильным, но показывает суть процесса.
-    if(targetTempearture()>waterTemperature())
-        heaterOn();
-    else
+            qInfo("kettleMode: %d\n", kettleMode);
+        }
+        break;
+
+    case KM_HEATING:
+        if (!isConditionsSafe() || !heatingSwitch()) {
+            kettleMode = KM_IDLE;
+            heaterOff();
+
+            qInfo("kettleMode: %d\n", kettleMode);
+        }
+
+        if (!isWaterBoiling() && !isTargetReached()) {
+            return;
+        }
+
+        kettleMode = KM_COOLING;
+
         heaterOff();
+        endOfHeatingTemperature = waterTemperature();
+
+        qInfo("kettleMode: %d\n", kettleMode);
+        break;
+
+    case KM_COOLING:
+        if (steamTempearture() - ambAirTempearture() <= 0.5) {
+            kettleMode = KM_HEATING;
+            heaterOn();
+
+            qInfo("kettleMode: %d\n", kettleMode);
+        }
+        break;
+    }
+}
+
+bool KettleControllerImpl::isWaterBoiling() const {
+    return (waterTemperature() - steamTempearture()) <= 0.1 &&
+           waterTemperature() > minWaterBoilingTemperature;
+}
+
+bool KettleControllerImpl::isTargetReached() const {
+    return (targetTempearture() - waterTemperature() <= 0.1);
+}
+
+bool KettleControllerImpl::isConditionsSafe() const {
+    return (kettleOnStand() && !coverOpen());
 }
