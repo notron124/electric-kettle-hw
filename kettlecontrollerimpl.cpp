@@ -8,8 +8,6 @@ void KettleControllerImpl::controllerProcess()
         if (isConditionsSafe()) {
             kettleMode = KM_HEATING;
             heaterOn();
-
-            qInfo("kettleMode: %d\n", kettleMode);
         }
         break;
 
@@ -17,8 +15,6 @@ void KettleControllerImpl::controllerProcess()
         if (!isConditionsSafe() || !heatingSwitch()) {
             kettleMode = KM_IDLE;
             heaterOff();
-
-            qInfo("kettleMode: %d\n", kettleMode);
         }
 
         if (!isWaterBoiling() && !isTargetReached()) {
@@ -29,16 +25,12 @@ void KettleControllerImpl::controllerProcess()
 
         heaterOff();
         endOfHeatingTemperature = waterTemperature();
-
-        qInfo("kettleMode: %d\n", kettleMode);
         break;
 
     case KM_COOLING:
         if (steamTempearture() - ambAirTempearture() <= 0.5) {
             kettleMode = KM_HEATING;
             heaterOn();
-
-            qInfo("kettleMode: %d\n", kettleMode);
         }
         break;
     }

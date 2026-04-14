@@ -17,7 +17,7 @@ public:
 
     void controllerProcess() final;
 
-    KettleModes getKettleMode() {
+    KettleModes getKettleMode() const {
         return kettleMode;
     }
 
