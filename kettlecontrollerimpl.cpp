@@ -1,24 +1,63 @@
 #include "kettlecontrollerimpl.h"
+#include <QtLogging>
+
+namespace {
+constexpr float differenceTheshold = 0.5;
+constexpr float whaterIsColdThershold = 0.5;
+}
 
 void KettleControllerImpl::controllerProcess()
 {
-    /*
-     * TODO
-     * Писать код следует в рамках данного класса наследника.
-     * Вы можете определять любые члены данного класса (внутренние классы, перечислители, поля, методы, всё что угодно).
-     * Данный метод вызывается раз в 20 мсек (исходя из частоты сети в 50 Гц) по времени чайника (время симуляции).
-     * Время симуляции значительно ускорено, потому полагаться на системные часы нельзя.
-     * Отклонения от частоты питающей сети можно не учитывать.
-     * Но возможны любые отклонения от работы датчиков.
-     * Для опроса состояния вам доступны публичные методы базового класса.
-     * Кроме этих методов больше ничего не доступно.
-     * Получение доступа к другим методам является нарушением условий задания. (но предложения мы рассмотрим)
-     * Использовать константы, функции и прочее из других источников из данной программы нельзя. Они вам не нужны.
-     */
+    switch (kettleMode) {
+    case KM_IDLE:
+        if (isConditionsSafe()) {
+            kettleMode = KM_HEATING;
+            heaterOn();
+            qInfo("Idle -> Heating");
+        }
+        break;
 
-    // Данный код написан для примера. Он не является правильным, но показывает суть процесса.
-    if(targetTempearture()>waterTemperature())
-        heaterOn();
-    else
+    case KM_HEATING:
+        if (!isConditionsSafe() || !heatingSwitch()) {
+            kettleMode = KM_IDLE;
+            heaterOff();
+            qInfo("Heating -> Idle");
+            return;
+        }
+
+        if (!isWaterBoiling() && !isTargetReached()) {
+            return;
+        }
+
+        kettleMode = KM_COOLING;
+
         heaterOff();
+
+        qInfo("Heating -> Cooling");
+        break;
+
+    case KM_COOLING:
+        if (steamTempearture() - ambAirTempearture() <= whaterIsColdThershold) {
+            kettleMode = KM_HEATING;
+            heaterOn();
+            qInfo("Cooling -> Heating");
+        }
+        break;
+
+    default:
+        break;
+    }
+}
+
+bool KettleControllerImpl::isWaterBoiling() const {
+    return ((waterTemperature() - steamTempearture()) <= differenceTheshold) &&
+           (steamTempearture() - ambAirTempearture() >= differenceTheshold);
+}
+
+bool KettleControllerImpl::isTargetReached() const {
+    return (targetTempearture() - waterTemperature() <= differenceTheshold);
+}
+
+bool KettleControllerImpl::isConditionsSafe() const {
+    return (kettleOnStand() && !coverOpen());
 }
