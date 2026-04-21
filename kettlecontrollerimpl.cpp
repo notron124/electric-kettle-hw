@@ -1,6 +1,11 @@
 #include "kettlecontrollerimpl.h"
 #include <QtLogging>
 
+namespace {
+constexpr float differenceTheshold = 0.5;
+constexpr float whaterIsColdThershold = 0.5;
+}
+
 void KettleControllerImpl::controllerProcess()
 {
     switch (kettleMode) {
@@ -8,6 +13,7 @@ void KettleControllerImpl::controllerProcess()
         if (isConditionsSafe()) {
             kettleMode = KM_HEATING;
             heaterOn();
+            qInfo("Idle -> Heating");
         }
         break;
 
@@ -15,6 +21,8 @@ void KettleControllerImpl::controllerProcess()
         if (!isConditionsSafe() || !heatingSwitch()) {
             kettleMode = KM_IDLE;
             heaterOff();
+            qInfo("Heating -> Idle");
+            return;
         }
 
         if (!isWaterBoiling() && !isTargetReached()) {
@@ -24,25 +32,30 @@ void KettleControllerImpl::controllerProcess()
         kettleMode = KM_COOLING;
 
         heaterOff();
-        endOfHeatingTemperature = waterTemperature();
+
+        qInfo("Heating -> Cooling");
         break;
 
     case KM_COOLING:
-        if (steamTempearture() - ambAirTempearture() <= 0.5) {
+        if (steamTempearture() - ambAirTempearture() <= whaterIsColdThershold) {
             kettleMode = KM_HEATING;
             heaterOn();
+            qInfo("Cooling -> Heating");
         }
+        break;
+
+    default:
         break;
     }
 }
 
 bool KettleControllerImpl::isWaterBoiling() const {
-    return (waterTemperature() - steamTempearture()) <= 0.1 &&
-           waterTemperature() > minWaterBoilingTemperature;
+    return ((waterTemperature() - steamTempearture()) <= differenceTheshold) &&
+           (steamTempearture() - ambAirTempearture() >= differenceTheshold);
 }
 
 bool KettleControllerImpl::isTargetReached() const {
-    return (targetTempearture() - waterTemperature() <= 0.1);
+    return (targetTempearture() - waterTemperature() <= differenceTheshold);
 }
 
 bool KettleControllerImpl::isConditionsSafe() const {

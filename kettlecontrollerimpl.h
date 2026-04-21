@@ -25,7 +25,6 @@ private:
     KettleModes kettleMode = KM_IDLE;
     // А вдруг чайник будет на эвересте >:)
     const int minWaterBoilingTemperature = 65;
-    int endOfHeatingTemperature;
     bool isWaterBoiling() const;
     bool isTargetReached() const;
     bool isConditionsSafe() const;
