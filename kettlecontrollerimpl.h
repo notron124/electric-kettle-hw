@@ -17,14 +17,8 @@ public:
 
     void controllerProcess() final;
 
-    KettleModes getKettleMode() const {
-        return kettleMode;
-    }
-
 private:
     KettleModes kettleMode = KM_IDLE;
-    // А вдруг чайник будет на эвересте >:)
-    const int minWaterBoilingTemperature = 65;
     bool isWaterBoiling() const;
     bool isTargetReached() const;
     bool isConditionsSafe() const;
